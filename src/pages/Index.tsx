@@ -4,7 +4,6 @@ import { useAppStore, TabType } from "@/lib/store";
 import { PremiumButton } from "@/components/PremiumButton";
 import { PremiumModal } from "@/components/PremiumModal";
 import { BottomTabs } from "@/components/BottomTabs";
-import { AudienceSelector } from "@/components/AudienceSelector";
 import { HomeworkPanel, AnswerPanel } from "@/components/HomeworkTab";
 import { QuizzesTab } from "@/components/QuizzesTab";
 import { FlashcardsTab } from "@/components/FlashcardsTab";
@@ -67,12 +66,6 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 pb-24 md:pb-6">
-        {/* Audience Selector - visible on homework tab */}
-        {activeTab === "homework" && (
-          <div className="mb-6">
-            <AudienceSelector />
-          </div>
-        )}
 
         {/* Tab Content */}
         <AnimatePresence mode="wait">
