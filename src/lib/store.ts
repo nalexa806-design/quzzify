@@ -107,7 +107,7 @@ interface AppState {
 }
 
 const FREE_IMAGE_LIMIT = 5;
-const FREE_QUIZ_LIMIT = 5;
+const FREE_QUIZ_LIMIT = 3;
 
 export const useAppStore = create<AppState>()(
   persist(

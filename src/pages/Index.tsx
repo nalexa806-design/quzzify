@@ -1,13 +1,18 @@
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, BookOpen, HelpCircle, Layers } from "lucide-react";
+import { Sparkles, BookOpen, HelpCircle, Layers, LogIn, LogOut, User } from "lucide-react";
 import { useAppStore, TabType } from "@/lib/store";
+import { useAuth } from "@/hooks/useAuth";
 import { PremiumButton } from "@/components/PremiumButton";
 import { PremiumModal } from "@/components/PremiumModal";
 import { BottomTabs } from "@/components/BottomTabs";
 import { HomeworkPanel, AnswerPanel } from "@/components/HomeworkTab";
 import { QuizzesTab } from "@/components/QuizzesTab";
 import { FlashcardsTab } from "@/components/FlashcardsTab";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const desktopTabs: { id: TabType; label: string; icon: React.ElementType }[] = [
   { id: "homework", label: "Homework", icon: BookOpen },
@@ -17,6 +22,31 @@ const desktopTabs: { id: TabType; label: string; icon: React.ElementType }[] = [
 
 const Index = () => {
   const { activeTab, setActiveTab } = useAppStore();
+  const { user, signOut, checkPremiumStatus } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
+
+  // Check for payment success/cancel in URL
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (payment === "success") {
+      toast({
+        title: "Payment successful!",
+        description: "Welcome to Premium! Your account is being upgraded.",
+      });
+      checkPremiumStatus();
+      // Clean up URL
+      window.history.replaceState({}, "", "/");
+    } else if (payment === "canceled") {
+      toast({
+        title: "Payment canceled",
+        description: "Your payment was not completed.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, "", "/");
+    }
+  }, [searchParams, toast, checkPremiumStatus]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -59,8 +89,35 @@ const Index = () => {
             })}
           </nav>
 
-          {/* Premium Button */}
-          <PremiumButton />
+          {/* Right side: Auth + Premium */}
+          <div className="flex items-center gap-2">
+            {user ? (
+              <div className="hidden md:flex items-center gap-2">
+                <span className="text-sm text-muted-foreground truncate max-w-32">
+                  {user.email}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={signOut}
+                  title="Sign out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="hidden md:flex gap-2"
+                onClick={() => navigate("/auth")}
+              >
+                <LogIn className="w-4 h-4" />
+                Login
+              </Button>
+            )}
+            <PremiumButton />
+          </div>
         </div>
       </header>
 

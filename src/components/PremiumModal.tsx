@@ -1,15 +1,60 @@
-import { Crown } from "lucide-react";
+import { useState } from "react";
+import { Crown, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/lib/store";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 export const PremiumModal = () => {
-  const { showPremiumModal, setShowPremiumModal, setIsPremium, isPremium } = useAppStore();
+  const { showPremiumModal, setShowPremiumModal, isPremium } = useAppStore();
+  const { user, session } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleUnlock = () => {
-    // In a real app, this would integrate with Stripe
-    setIsPremium(true);
-    setShowPremiumModal(false);
+  const handleUnlock = async () => {
+    if (!user || !session) {
+      toast({
+        title: "Login required",
+        description: "Please log in to purchase premium.",
+      });
+      setShowPremiumModal(false);
+      navigate("/auth");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.url) {
+        window.open(data.url, "_blank");
+        setShowPremiumModal(false);
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (err) {
+      console.error("Checkout error:", err);
+      toast({
+        title: "Checkout failed",
+        description: "Failed to start checkout. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isPremium) return null;
@@ -58,12 +103,11 @@ export const PremiumModal = () => {
 
                 <ul className="space-y-3">
                   {[
-                    "Unlimited homework submissions",
+                    "Unlimited quizzes (up to 20 questions)",
+                    "Unlimited flashcard decks (up to 20 cards)",
+                    "In-depth homework explanations",
                     "Unlimited image uploads",
-                    "Unlimited quizzes & history",
-                    "Full step-by-step explanations",
-                    "Create unlimited flashcard decks",
-                    "Advanced problem types",
+                    "Full step-by-step solutions",
                     "Export results (PDF/CSV)",
                   ].map((feature, i) => (
                     <li key={i} className="flex items-center gap-3">
@@ -83,9 +127,19 @@ export const PremiumModal = () => {
                     size="lg"
                     className="w-full"
                     onClick={handleUnlock}
+                    disabled={isLoading}
                   >
-                    <Crown className="w-5 h-5" />
-                    Unlock Premium
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Opening checkout...
+                      </>
+                    ) : (
+                      <>
+                        <Crown className="w-5 h-5" />
+                        Unlock Premium
+                      </>
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
