@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, History, Image, CheckCircle, XCircle, HelpCircle, Lock, Loader2 } from "lucide-react";
+import { Plus, History, Image, CheckCircle, XCircle, HelpCircle, Lock, Loader2, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppStore, Quiz, QuizQuestion } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { Slider } from "@/components/ui/slider";
 
 const SAMPLE_TOPICS = [
   "Basic Algebra",
@@ -31,6 +32,12 @@ export const QuizzesTab = () => {
   const [topic, setTopic] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [questionCount, setQuestionCount] = useState(5);
+  const [showAnswerFeedback, setShowAnswerFeedback] = useState(false);
+  const [showResultsModal, setShowResultsModal] = useState(false);
+
+  const maxQuestions = isPremium ? 20 : 7;
+  const minQuestions = 3;
 
   const generateQuiz = async () => {
     if (!topic.trim()) return;
@@ -42,11 +49,14 @@ export const QuizzesTab = () => {
     setIsGenerating(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
+    const allQuestions = generateMockQuestions(topic);
+    const selectedQuestions = allQuestions.slice(0, questionCount);
+    
     const quiz: Quiz = {
       id: Date.now().toString(),
       title: topic,
       topic,
-      questions: generateMockQuestions(topic),
+      questions: selectedQuestions,
       completed: false,
       timestamp: Date.now(),
     };
@@ -209,7 +219,7 @@ export const QuizzesTab = () => {
   };
 
   const handleAnswer = (answerIndex: number) => {
-    if (!activeQuiz) return;
+    if (!activeQuiz || showAnswerFeedback) return;
 
     const updatedQuestions = [...activeQuiz.questions];
     updatedQuestions[currentQuestionIndex].userAnswer = answerIndex;
@@ -225,9 +235,18 @@ export const QuizzesTab = () => {
       score,
     });
 
-    if (currentQuestionIndex < activeQuiz.questions.length - 1) {
-      setTimeout(() => setCurrentQuestionIndex((i) => i + 1), 500);
-    }
+    setShowAnswerFeedback(true);
+
+    // Show answer for 2.5 seconds, then move to next question or show results
+    setTimeout(() => {
+      setShowAnswerFeedback(false);
+      if (currentQuestionIndex < activeQuiz.questions.length - 1) {
+        setCurrentQuestionIndex((i) => i + 1);
+      } else {
+        // Quiz completed - show results modal
+        setShowResultsModal(true);
+      }
+    }, 2500);
   };
 
   const remainingQuizzes = 5 - quizzesCreated;
@@ -351,30 +370,83 @@ export const QuizzesTab = () => {
               isPremium={isPremium}
             />
 
-            {/* Results */}
-            {activeQuiz.completed && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-6 p-6 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 text-center"
-              >
-                <h3 className="text-2xl font-bold text-foreground mb-2">
-                  Quiz Complete!
-                </h3>
-                <p className="text-4xl font-bold text-primary">
-                  {activeQuiz.score}/{activeQuiz.questions.length}
-                </p>
-                <Button
-                  onClick={() => {
-                    setActiveQuiz(null);
-                    setCurrentQuestionIndex(0);
-                  }}
-                  className="mt-4"
+            {/* Results Modal */}
+            <AnimatePresence>
+              {showResultsModal && activeQuiz.completed && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                  onClick={() => setShowResultsModal(false)}
                 >
-                  Start New Quiz
-                </Button>
-              </motion.div>
-            )}
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.8, opacity: 0 }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full text-center"
+                  >
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Trophy className="w-8 h-8 text-primary" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-foreground mb-2">
+                      Quiz Complete!
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      You answered {activeQuiz.score} out of {activeQuiz.questions.length} correctly
+                    </p>
+                    
+                    {/* Score progress bar */}
+                    <div className="mb-6">
+                      <div className="h-4 bg-secondary rounded-full overflow-hidden">
+                        <motion.div
+                          className={cn(
+                            "h-full",
+                            (activeQuiz.score! / activeQuiz.questions.length) >= 0.7
+                              ? "bg-success"
+                              : (activeQuiz.score! / activeQuiz.questions.length) >= 0.4
+                              ? "bg-warning"
+                              : "bg-destructive"
+                          )}
+                          initial={{ width: 0 }}
+                          animate={{
+                            width: `${(activeQuiz.score! / activeQuiz.questions.length) * 100}%`,
+                          }}
+                          transition={{ duration: 0.8, delay: 0.2 }}
+                        />
+                      </div>
+                      <p className="text-3xl font-bold text-primary mt-3">
+                        {Math.round((activeQuiz.score! / activeQuiz.questions.length) * 100)}%
+                      </p>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setShowResultsModal(false);
+                          setCurrentQuestionIndex(0);
+                        }}
+                        className="flex-1"
+                      >
+                        Review Answers
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setShowResultsModal(false);
+                          setActiveQuiz(null);
+                          setCurrentQuestionIndex(0);
+                        }}
+                        className="flex-1"
+                      >
+                        New Quiz
+                      </Button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         ) : (
           <motion.div
@@ -399,6 +471,26 @@ export const QuizzesTab = () => {
                     <Plus className="w-4 h-4" />
                   )}
                 </Button>
+              </div>
+
+              {/* Question count selector */}
+              <div className="p-4 rounded-xl bg-card border border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-foreground">Number of questions</span>
+                  <span className="text-lg font-bold text-primary">{questionCount}</span>
+                </div>
+                <Slider
+                  value={[questionCount]}
+                  onValueChange={(value) => setQuestionCount(value[0])}
+                  min={minQuestions}
+                  max={maxQuestions}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                  <span>{minQuestions}</span>
+                  <span>{maxQuestions}{!isPremium && " (Premium: up to 20)"}</span>
+                </div>
               </div>
 
               {/* Image upload note */}
@@ -492,7 +584,7 @@ const QuestionCard = ({
         })}
       </div>
 
-      {/* Explanation */}
+      {/* Explanation - always shown in both free and premium */}
       {answered && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
@@ -503,13 +595,7 @@ const QuestionCard = ({
             <HelpCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-foreground mb-1">Explanation</p>
-              {isPremium ? (
-                <p className="text-muted-foreground">{question.explanation}</p>
-              ) : (
-                <p className="text-muted-foreground italic">
-                  Upgrade to Premium for full explanations
-                </p>
-              )}
+              <p className="text-muted-foreground">{question.explanation}</p>
             </div>
           </div>
         </motion.div>
