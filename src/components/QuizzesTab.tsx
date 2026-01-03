@@ -60,27 +60,150 @@ export const QuizzesTab = () => {
   };
 
   const generateMockQuestions = (topic: string): QuizQuestion[] => {
+    const topicQuestions: Record<string, QuizQuestion[]> = {
+      "Basic Algebra": [
+        {
+          id: "1",
+          question: "What is the value of x in the equation 2x + 6 = 14?",
+          options: ["x = 2", "x = 4", "x = 6", "x = 8"],
+          correctAnswer: 1,
+          explanation: "Subtract 6 from both sides: 2x = 8, then divide by 2: x = 4.",
+        },
+        {
+          id: "2",
+          question: "True or False: The expression 3(x + 2) equals 3x + 6.",
+          options: ["True", "False"],
+          correctAnswer: 0,
+          explanation: "Using the distributive property: 3(x + 2) = 3·x + 3·2 = 3x + 6.",
+        },
+        {
+          id: "3",
+          question: "Simplify: 5x + 3x - 2x",
+          options: ["6x", "8x", "10x", "4x"],
+          correctAnswer: 0,
+          explanation: "Combine like terms: 5x + 3x - 2x = (5 + 3 - 2)x = 6x.",
+        },
+      ],
+      "Geometry Basics": [
+        {
+          id: "1",
+          question: "What is the sum of angles in a triangle?",
+          options: ["90°", "180°", "270°", "360°"],
+          correctAnswer: 1,
+          explanation: "The sum of interior angles in any triangle is always 180 degrees.",
+        },
+        {
+          id: "2",
+          question: "True or False: A square has 4 equal sides and 4 right angles.",
+          options: ["True", "False"],
+          correctAnswer: 0,
+          explanation: "By definition, a square has 4 equal sides and 4 angles of 90°.",
+        },
+        {
+          id: "3",
+          question: "What is the area of a rectangle with length 8 and width 5?",
+          options: ["13 sq units", "26 sq units", "40 sq units", "80 sq units"],
+          correctAnswer: 2,
+          explanation: "Area of rectangle = length × width = 8 × 5 = 40 square units.",
+        },
+      ],
+      "Fractions & Decimals": [
+        {
+          id: "1",
+          question: "What is 1/4 + 1/4?",
+          options: ["1/8", "2/8", "1/2", "2/4"],
+          correctAnswer: 2,
+          explanation: "1/4 + 1/4 = 2/4 = 1/2 when simplified.",
+        },
+        {
+          id: "2",
+          question: "True or False: 0.5 is equivalent to 1/2.",
+          options: ["True", "False"],
+          correctAnswer: 0,
+          explanation: "0.5 means 5/10, which simplifies to 1/2.",
+        },
+        {
+          id: "3",
+          question: "Convert 3/4 to a decimal.",
+          options: ["0.25", "0.50", "0.75", "0.80"],
+          correctAnswer: 2,
+          explanation: "3 ÷ 4 = 0.75.",
+        },
+      ],
+      "Statistics 101": [
+        {
+          id: "1",
+          question: "What is the mean of 2, 4, 6, 8?",
+          options: ["4", "5", "6", "7"],
+          correctAnswer: 1,
+          explanation: "Mean = (2+4+6+8)/4 = 20/4 = 5.",
+        },
+        {
+          id: "2",
+          question: "True or False: The median is the middle value in a sorted dataset.",
+          options: ["True", "False"],
+          correctAnswer: 0,
+          explanation: "The median is the middle value when data is arranged in order.",
+        },
+        {
+          id: "3",
+          question: "What is the mode of: 3, 5, 5, 7, 9?",
+          options: ["3", "5", "7", "9"],
+          correctAnswer: 1,
+          explanation: "The mode is the most frequently occurring value, which is 5.",
+        },
+      ],
+      "Word Problems": [
+        {
+          id: "1",
+          question: "If you have 15 apples and give away 7, how many remain?",
+          options: ["6", "7", "8", "22"],
+          correctAnswer: 2,
+          explanation: "15 - 7 = 8 apples remaining.",
+        },
+        {
+          id: "2",
+          question: "True or False: If a shirt costs $20 and is 25% off, the discount is $5.",
+          options: ["True", "False"],
+          correctAnswer: 0,
+          explanation: "25% of $20 = 0.25 × 20 = $5 discount.",
+        },
+        {
+          id: "3",
+          question: "A train travels 60 miles in 2 hours. What is its speed?",
+          options: ["20 mph", "30 mph", "40 mph", "120 mph"],
+          correctAnswer: 1,
+          explanation: "Speed = distance/time = 60 miles ÷ 2 hours = 30 mph.",
+        },
+      ],
+    };
+
+    // Return specific questions if topic matches, otherwise generate generic ones
+    if (topicQuestions[topic]) {
+      return topicQuestions[topic];
+    }
+
     return [
       {
         id: "1",
-        question: `What is the main concept in ${topic}?`,
-        options: ["Option A", "Option B", "Option C", "Option D"],
+        question: `What is a key principle in ${topic}?`,
+        options: ["Understanding the basics first", "Memorizing formulas only", "Skipping practice", "Ignoring theory"],
         correctAnswer: 0,
-        explanation: "This is because Option A represents the fundamental principle.",
+        explanation: "Understanding the basics provides a strong foundation for learning any topic.",
       },
       {
         id: "2",
-        question: `Which formula is commonly used in ${topic}?`,
-        options: ["Formula 1", "Formula 2", "Formula 3", "Formula 4"],
-        correctAnswer: 1,
-        explanation: "Formula 2 is the standard approach for this type of problem.",
+        question: `True or False: Practice is essential for mastering ${topic}.`,
+        options: ["True", "False"],
+        correctAnswer: 0,
+        explanation: "Regular practice reinforces concepts and improves problem-solving skills.",
       },
       {
         id: "3",
-        question: `How do you solve a typical ${topic} problem?`,
-        options: ["Step A", "Step B", "Step C", "Step D"],
-        correctAnswer: 2,
-        explanation: "Step C provides the most efficient solution method.",
+        question: `Which approach works best for studying ${topic}?`,
+        options: ["Break it into smaller parts", "Try to learn everything at once", "Only read without practicing", "Skip difficult sections"],
+        correctAnswer: 0,
+        explanation: "Breaking topics into smaller parts makes learning more manageable and effective.",
       },
     ];
   };
