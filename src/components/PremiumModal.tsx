@@ -33,9 +33,9 @@ export const PremiumModal = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed inset-x-4 top-1/2 -translate-y-1/2 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:max-w-md z-50"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="bg-card rounded-2xl shadow-lg overflow-hidden border border-border">
+            <div className="bg-card rounded-2xl shadow-lg overflow-hidden border border-border w-full max-w-md">
               {/* Header with gradient */}
               <div className="bg-gradient-to-r from-premium to-premium-glow p-6 text-center">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-premium-foreground/20 mb-4">
