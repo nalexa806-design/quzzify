@@ -249,7 +249,7 @@ export const QuizzesTab = () => {
     }, 2500);
   };
 
-  const remainingQuizzes = 5 - quizzesCreated;
+  const remainingQuizzes = 3 - quizzesCreated;
 
   return (
     <div className="h-full overflow-y-auto p-4">
