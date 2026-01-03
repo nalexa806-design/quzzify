@@ -123,7 +123,7 @@ export const HomeworkPanel = () => {
   return (
     <div className="flex flex-col h-full">
       {/* Input Section */}
-      <div className="flex-1 p-4 overflow-y-auto">
+      <div className="flex-1 p-4 overflow-y-auto md:overflow-visible">
         {/* Mobile Input Toggle */}
         <div className="flex gap-2 mb-4 md:hidden">
           <Button
@@ -224,10 +224,32 @@ export const HomeworkPanel = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Submit Button - Desktop: inline, Mobile: fixed bottom */}
+        <div className="hidden md:block mt-4">
+          <Button
+            onClick={handleSubmit}
+            disabled={isProcessing || (currentQuestion.trim().length < 3 && !currentImageUrl)}
+            className="w-full"
+            size="lg"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Send className="w-5 h-5" />
+                Solve Problem
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
-      {/* Submit Button */}
-      <div className="p-4 border-t border-border bg-card/50">
+      {/* Mobile Submit Button - Fixed at bottom */}
+      <div className="md:hidden fixed bottom-16 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t border-border z-20">
         <Button
           onClick={handleSubmit}
           disabled={isProcessing || (currentQuestion.trim().length < 3 && !currentImageUrl)}
