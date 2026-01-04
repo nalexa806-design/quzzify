@@ -1,11 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, History, Image, CheckCircle, XCircle, HelpCircle, Lock, Loader2, Trophy } from "lucide-react";
+import { Plus, History, Image, CheckCircle, XCircle, HelpCircle, Lock, Loader2, Trophy, Clock, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppStore, Quiz, QuizQuestion } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
+import { useXp } from "@/hooks/useXp";
+import { useAuth } from "@/hooks/useAuth";
+import { formatTime, calculateQuizXp } from "@/lib/xp";
 
 const SAMPLE_TOPICS = [
   "Basic Algebra",
@@ -28,6 +31,9 @@ export const QuizzesTab = () => {
     quizzesCreated,
   } = useAppStore();
 
+  const { user } = useAuth();
+  const { level, addQuizXp, bonusQuizzes } = useXp();
+
   const [showHistory, setShowHistory] = useState(false);
   const [topic, setTopic] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -35,9 +41,34 @@ export const QuizzesTab = () => {
   const [questionCount, setQuestionCount] = useState(5);
   const [showAnswerFeedback, setShowAnswerFeedback] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
+  const [quizTimer, setQuizTimer] = useState(0);
+  const [xpEarned, setXpEarned] = useState<number | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const maxQuestions = isPremium ? 20 : 7;
   const minQuestions = 3;
+
+  // Timer effect
+  useEffect(() => {
+    if (activeQuiz && !activeQuiz.completed) {
+      timerRef.current = setInterval(() => {
+        setQuizTimer((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [activeQuiz, activeQuiz?.completed]);
+
+  // Reset timer when starting new quiz
+  const startQuiz = (quiz: Quiz) => {
+    setQuizTimer(0);
+    setXpEarned(null);
+    setActiveQuiz(quiz);
+    setCurrentQuestionIndex(0);
+  };
 
   const generateQuiz = async () => {
     if (!topic.trim()) return;
@@ -62,8 +93,7 @@ export const QuizzesTab = () => {
     };
 
     if (addQuiz(quiz)) {
-      setActiveQuiz(quiz);
-      setCurrentQuestionIndex(0);
+      startQuiz(quiz);
     }
     setIsGenerating(false);
     setTopic("");
@@ -238,12 +268,25 @@ export const QuizzesTab = () => {
     setShowAnswerFeedback(true);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!activeQuiz) return;
     setShowAnswerFeedback(false);
     if (currentQuestionIndex < activeQuiz.questions.length - 1) {
       setCurrentQuestionIndex((i) => i + 1);
     } else {
+      // Stop timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      
+      // Award XP if logged in
+      if (user && activeQuiz.score !== undefined) {
+        const result = await addQuizXp(activeQuiz.score, activeQuiz.questions.length);
+        if (result) {
+          setXpEarned(result.xpEarned);
+        }
+      }
+      
       setShowResultsModal(true);
     }
   };
@@ -344,11 +387,14 @@ export const QuizzesTab = () => {
               ← Back
             </Button>
 
-            {/* Progress */}
+            {/* Timer and Progress */}
             <div className="mb-6">
               <div className="flex justify-between text-sm text-muted-foreground mb-2">
                 <span>Question {currentQuestionIndex + 1} of {activeQuiz.questions.length}</span>
-                <span>{activeQuiz.topic}</span>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  <span className="font-mono">{formatTime(quizTimer)}</span>
+                </div>
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">
                 <motion.div
@@ -360,6 +406,7 @@ export const QuizzesTab = () => {
                   transition={{ duration: 0.3 }}
                 />
               </div>
+              <p className="text-xs text-muted-foreground mt-1">{activeQuiz.topic}</p>
             </div>
 
             {/* Question */}
@@ -400,7 +447,7 @@ export const QuizzesTab = () => {
                     </p>
                     
                     {/* Score progress bar */}
-                    <div className="mb-6">
+                    <div className="mb-4">
                       <div className="h-4 bg-secondary rounded-full overflow-hidden">
                         <motion.div
                           className={cn(
@@ -422,6 +469,30 @@ export const QuizzesTab = () => {
                         {Math.round((activeQuiz.score! / activeQuiz.questions.length) * 100)}%
                       </p>
                     </div>
+
+                    {/* Time taken */}
+                    <div className="flex items-center justify-center gap-2 text-muted-foreground mb-4">
+                      <Clock className="w-4 h-4" />
+                      <span>Time: {formatTime(quizTimer)}</span>
+                    </div>
+
+                    {/* XP earned */}
+                    {xpEarned !== null && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex items-center justify-center gap-2 text-lg font-bold text-primary mb-4"
+                      >
+                        <Zap className="w-5 h-5" />
+                        <span>+{xpEarned} XP</span>
+                      </motion.div>
+                    )}
+                    
+                    {!user && (
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Login to earn XP and track your progress!
+                      </p>
+                    )}
 
                     <div className="flex gap-3">
                       <Button
@@ -615,7 +686,7 @@ const QuestionCard = ({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Button onClick={onNext} className="w-full">
+          <Button onClick={onNext} className="w-full h-14 text-lg font-semibold">
             {isLastQuestion ? "See Results" : "Next Question"}
           </Button>
         </motion.div>
