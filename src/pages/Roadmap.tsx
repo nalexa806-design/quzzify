@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Trophy, Star, Zap, Gift, Crown } from "lucide-react";
+import { ArrowLeft, Trophy, Star, Zap, Gift, Crown, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useXp } from "@/hooks/useXp";
@@ -14,18 +14,9 @@ const Roadmap = () => {
   const { level, levelInfo, loading } = useXp();
   const milestones = getAllMilestones();
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center">
-          <Trophy className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h1 className="text-2xl font-bold text-foreground mb-2">Login Required</h1>
-          <p className="text-muted-foreground mb-4">You need to be logged in to view the roadmap.</p>
-          <Button onClick={() => navigate("/auth")}>Login</Button>
-        </div>
-      </div>
-    );
-  }
+  const isLoggedIn = !!user;
+  const displayLevel = isLoggedIn ? level : 1;
+  const displayLevelInfo = isLoggedIn ? levelInfo : { currentXp: 0, xpForNextLevel: 350, progress: 0 };
 
   return (
     <div className="min-h-screen bg-background">
@@ -35,35 +26,67 @@ const Roadmap = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div>
-            <h1 className="text-lg font-bold text-foreground">Level Roadmap</h1>
-            <p className="text-sm text-muted-foreground">
-              Level {level} • {levelInfo.currentXp.toLocaleString()} XP
-            </p>
-          </div>
-        </div>
-      </header>
-
-      {/* Current Progress */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="bg-card border border-border rounded-2xl p-6 mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center">
-              <span className="text-2xl font-bold text-primary-foreground">{level}</span>
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-foreground">Level {level}</h2>
-              <p className="text-muted-foreground">
-                {level >= 100 
-                  ? "Max level reached!" 
-                  : `${(levelInfo.xpForNextLevel - levelInfo.currentXp).toLocaleString()} XP to level ${level + 1}`
+          <div className="flex items-center gap-2">
+            {!isLoggedIn && <Lock className="w-5 h-5 text-muted-foreground" />}
+            <div>
+              <h1 className="text-lg font-bold text-foreground">Level Roadmap</h1>
+              <p className="text-sm text-muted-foreground">
+                {isLoggedIn 
+                  ? `Level ${displayLevel} • ${displayLevelInfo.currentXp.toLocaleString()} XP`
+                  : "Login to track progress"
                 }
               </p>
             </div>
           </div>
-          <Progress value={levelInfo.progress} className="h-3" />
+        </div>
+      </header>
+
+      {/* Login Banner for non-logged in users */}
+      {!isLoggedIn && (
+        <div className="container mx-auto px-4 py-4">
+          <div className="bg-muted/50 border border-border rounded-xl p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Lock className="w-5 h-5 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Login to start earning XP and unlock rewards</p>
+            </div>
+            <Button size="sm" onClick={() => navigate("/auth")}>Login</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Current Progress */}
+      <div className="container mx-auto px-4 py-6">
+        <div className={cn(
+          "bg-card border border-border rounded-2xl p-6 mb-8",
+          !isLoggedIn && "opacity-60"
+        )}>
+          <div className="flex items-center gap-4 mb-4">
+            <div className={cn(
+              "w-16 h-16 rounded-full flex items-center justify-center",
+              isLoggedIn 
+                ? "bg-gradient-to-br from-primary to-primary-glow" 
+                : "bg-muted"
+            )}>
+              <span className={cn(
+                "text-2xl font-bold",
+                isLoggedIn ? "text-primary-foreground" : "text-muted-foreground"
+              )}>{displayLevel}</span>
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-foreground">Level {displayLevel}</h2>
+              <p className="text-muted-foreground">
+                {isLoggedIn 
+                  ? displayLevel >= 100 
+                    ? "Max level reached!" 
+                    : `${(displayLevelInfo.xpForNextLevel - displayLevelInfo.currentXp).toLocaleString()} XP to level ${displayLevel + 1}`
+                  : "Login to start your journey"
+                }
+              </p>
+            </div>
+          </div>
+          <Progress value={displayLevelInfo.progress} className="h-3" />
           <p className="text-sm text-muted-foreground mt-2">
-            {levelInfo.currentXp.toLocaleString()} / {levelInfo.xpForNextLevel.toLocaleString()} XP
+            {displayLevelInfo.currentXp.toLocaleString()} / {displayLevelInfo.xpForNextLevel.toLocaleString()} XP
           </p>
         </div>
 
@@ -73,8 +96,8 @@ const Roadmap = () => {
           <div className="hidden md:block overflow-x-auto pb-4">
             <div className="flex gap-6 min-w-max px-4">
               {milestones.map((milestone, index) => {
-                const isReached = level >= milestone.level;
-                const isCurrent = level >= (milestones[index - 1]?.level ?? 0) && level < milestone.level;
+                const isReached = displayLevel >= milestone.level;
+                const isCurrent = displayLevel >= (milestones[index - 1]?.level ?? 0) && displayLevel < milestone.level;
                 const xpRequired = getXpForLevel(milestone.level);
 
                 return (
@@ -171,9 +194,9 @@ const Roadmap = () => {
 
           {/* Mobile vertical list */}
           <div className="md:hidden space-y-4">
-            {milestones.map((milestone, index) => {
-              const isReached = level >= milestone.level;
-              const isCurrent = level >= (milestones[index - 1]?.level ?? 0) && level < milestone.level;
+              {milestones.map((milestone, index) => {
+                const isReached = displayLevel >= milestone.level;
+                const isCurrent = displayLevel >= (milestones[index - 1]?.level ?? 0) && displayLevel < milestone.level;
               const xpRequired = getXpForLevel(milestone.level);
 
               return (
