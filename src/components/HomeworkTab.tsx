@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppStore, HomeworkAnswer } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { evaluate } from "mathjs";
 
 export const HomeworkPanel = () => {
   const {
@@ -74,9 +75,16 @@ export const HomeworkPanel = () => {
     const id = Date.now().toString();
     
     if (isSimple) {
-      // Simple arithmetic
+      // Simple arithmetic - use safe math parser instead of eval
       try {
-        const result = eval(question.replace(/[^0-9+\-*/().]/g, ""));
+        const sanitized = question.replace(/[^0-9+\-*/().]/g, "");
+        // Additional validation: max length and balanced parentheses
+        if (sanitized.length > 100) throw new Error("Expression too long");
+        const openParens = (sanitized.match(/\(/g) || []).length;
+        const closeParens = (sanitized.match(/\)/g) || []).length;
+        if (openParens !== closeParens) throw new Error("Unbalanced parentheses");
+        
+        const result = evaluate(sanitized);
         return {
           id,
           question,

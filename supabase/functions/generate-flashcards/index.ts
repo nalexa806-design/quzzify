@@ -1,8 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[GENERATE-FLASHCARDS] ${step}${detailsStr}`);
 };
 
 serve(async (req) => {
@@ -11,6 +17,36 @@ serve(async (req) => {
   }
 
   try {
+    logStep("Function started");
+
+    // Authentication check
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      logStep("ERROR", { message: "No authorization header" });
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: authError } = await supabaseClient.auth.getUser(token);
+    
+    if (authError || !userData.user) {
+      logStep("ERROR", { message: "Invalid authentication" });
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication" }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    logStep("User authenticated", { userId: userData.user.id });
+
     const { notes, imageBase64 } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -18,7 +54,6 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    let prompt = '';
     const messages: any[] = [];
 
     if (imageBase64) {
@@ -71,7 +106,7 @@ Focus on key concepts, definitions, formulas, and important facts.`
       throw new Error('Either notes or imageBase64 is required');
     }
 
-    console.log('Calling AI gateway to generate flashcards...');
+    logStep('Calling AI gateway to generate flashcards...');
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -87,7 +122,7 @@ Focus on key concepts, definitions, formulas, and important facts.`
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
+      logStep('AI gateway error', { status: response.status });
       
       if (response.status === 429) {
         return new Response(
@@ -101,7 +136,7 @@ Focus on key concepts, definitions, formulas, and important facts.`
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      throw new Error(`AI gateway error: ${response.status}`);
+      throw new Error('AI gateway error');
     }
 
     const data = await response.json();
@@ -111,7 +146,7 @@ Focus on key concepts, definitions, formulas, and important facts.`
       throw new Error('No content in AI response');
     }
 
-    console.log('AI response received, parsing flashcards...');
+    logStep('AI response received, parsing flashcards...');
 
     // Parse the JSON response
     let flashcards;
@@ -124,7 +159,7 @@ Focus on key concepts, definitions, formulas, and important facts.`
         flashcards = JSON.parse(content);
       }
     } catch (parseError) {
-      console.error('Failed to parse AI response:', content);
+      logStep('Failed to parse AI response');
       throw new Error('Failed to parse flashcards from AI response');
     }
 
@@ -143,7 +178,7 @@ Focus on key concepts, definitions, formulas, and important facts.`
         mastered: false,
       }));
 
-    console.log(`Generated ${validFlashcards.length} flashcards`);
+    logStep(`Generated ${validFlashcards.length} flashcards`);
 
     return new Response(
       JSON.stringify({ flashcards: validFlashcards }),
@@ -151,9 +186,9 @@ Focus on key concepts, definitions, formulas, and important facts.`
     );
 
   } catch (error) {
-    console.error('Error generating flashcards:', error);
+    logStep('ERROR', { message: error instanceof Error ? error.message : 'Unknown error' });
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Failed to generate flashcards' }),
+      JSON.stringify({ error: 'Failed to generate flashcards' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
