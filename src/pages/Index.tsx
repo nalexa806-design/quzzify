@@ -134,9 +134,9 @@ const Index = () => {
             transition={{ duration: 0.15 }}
           >
             {activeTab === "homework" && (
-              <div className="grid md:grid-cols-2 gap-6 min-h-[calc(100vh-200px)]">
+              <div className="grid md:grid-cols-2 gap-6 md:h-[min(680px,calc(100dvh-200px))] md:overflow-hidden">
                 {/* Input Panel */}
-                <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+                <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col min-h-0">
                   <div className="p-4 border-b border-border bg-secondary/30">
                     <h2 className="font-semibold text-foreground">Your Question</h2>
                   </div>
@@ -144,7 +144,7 @@ const Index = () => {
                 </div>
 
                 {/* Answer Panel */}
-                <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+                <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col min-h-0">
                   <div className="p-4 border-b border-border bg-secondary/30">
                     <h2 className="font-semibold text-foreground">Solution</h2>
                   </div>

@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Image, Type, Upload, X, Loader2, Sparkles } from "lucide-react";
+import { Send, Image, Type, Upload, X, Loader2, Sparkles, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppStore, HomeworkAnswer } from "@/lib/store";
@@ -121,9 +121,9 @@ export const HomeworkPanel = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Input Section */}
-      <div className="flex-1 p-4 overflow-y-auto md:overflow-visible">
+      <div className="flex-1 min-h-0 p-4 overflow-y-auto">
         {/* Mobile Input Toggle */}
         <div className="flex gap-2 mb-4 md:hidden">
           <Button
@@ -274,10 +274,24 @@ export const HomeworkPanel = () => {
 };
 
 export const AnswerPanel = () => {
-  const { currentAnswer, isProcessing } = useAppStore();
+  const { currentAnswer, isProcessing, isPremium, setShowPremiumModal } = useAppStore();
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  useEffect(() => {
+    setShowAdvanced(false);
+  }, [currentAnswer?.id]);
+
+  const advancedBullets = currentAnswer
+    ? [
+        "Rewrite the problem using clear variables/units so every step is justified.",
+        "Choose the method that matches the structure (substitution, factoring, or systematic rearranging).",
+        "Justify each transformation (whatever you do to one side of an equation, do to the other).",
+        "Verify by substituting the final answer back into the original statement and checking constraints.",
+      ]
+    : [];
 
   return (
-    <div className="max-h-[calc(100vh-280px)] md:max-h-[calc(100vh-220px)] overflow-y-auto p-4 pb-32 md:pb-4">
+    <div className="h-full min-h-0 max-h-[calc(100dvh-240px)] md:max-h-none overflow-hidden p-4 pb-6 md:pb-4">
       <AnimatePresence mode="wait">
         {isProcessing ? (
           <motion.div
@@ -300,7 +314,7 @@ export const AnswerPanel = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="space-y-6"
+            className="flex flex-col h-full min-h-0 gap-6"
           >
             {/* Question */}
             <div className="bg-secondary/50 rounded-xl p-4">
@@ -316,12 +330,32 @@ export const AnswerPanel = () => {
             </div>
 
             {/* Steps */}
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
-                Step-by-Step Solution
-              </h3>
-              <div className="space-y-3">
+            <div className="min-h-0 flex-1 flex flex-col">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  Step-by-Step Solution
+                </h3>
+
+                <Button
+                  type="button"
+                  variant={isPremium ? "outline" : "premium"}
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => {
+                    if (!isPremium) {
+                      setShowPremiumModal(true);
+                      return;
+                    }
+                    setShowAdvanced((v) => !v);
+                  }}
+                >
+                  {!isPremium && <Crown className="w-4 h-4" />}
+                  {showAdvanced ? "Hide advanced" : "Advanced"}
+                </Button>
+              </div>
+
+              <div className="min-h-0 overflow-y-auto pr-1 space-y-3">
                 {currentAnswer.steps.map((step, index) => (
                   <motion.div
                     key={index}
@@ -333,9 +367,24 @@ export const AnswerPanel = () => {
                     <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 text-sm font-medium text-primary">
                       {index + 1}
                     </div>
-                    <p className="text-foreground pt-0.5">{step.replace(/^\d+\.\s*/, "")}</p>
+                    <p className="text-foreground pt-0.5">
+                      {step.replace(/^\d+\.\s*/, "")}
+                    </p>
                   </motion.div>
                 ))}
+
+                {isPremium && showAdvanced && (
+                  <div className="rounded-xl border border-border bg-secondary/30 p-4">
+                    <h4 className="text-sm font-semibold text-foreground">
+                      Advanced explanation (Premium)
+                    </h4>
+                    <ul className="mt-2 list-disc pl-5 space-y-2 text-sm text-muted-foreground">
+                      {advancedBullets.map((b, i) => (
+                        <li key={i}>{b}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -343,11 +392,13 @@ export const AnswerPanel = () => {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.2 }}
               className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-xl p-5"
             >
               <h3 className="text-sm font-medium text-primary mb-2">Final Answer</h3>
-              <p className="text-xl font-semibold text-foreground">{currentAnswer.finalAnswer}</p>
+              <p className="text-xl font-semibold text-foreground">
+                {currentAnswer.finalAnswer}
+              </p>
             </motion.div>
           </motion.div>
         ) : (
