@@ -359,14 +359,14 @@ export const AnswerPanel = () => {
                   }}
                 >
                   {!isPremium && <Crown className="w-4 h-4" />}
-                  {showAdvanced ? "Hide advanced" : "Advanced"}
+                  {showAdvanced ? "Simple mode" : "Advanced"}
                 </Button>
               </div>
 
               <div className="min-h-0 overflow-y-auto pr-1 space-y-3">
-                {currentAnswer.steps.map((step, index) => (
+                {(isPremium && showAdvanced ? advancedBullets : currentAnswer.steps).map((step, index) => (
                   <motion.div
-                    key={index}
+                    key={`${showAdvanced}-${index}`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
@@ -380,19 +380,6 @@ export const AnswerPanel = () => {
                     </p>
                   </motion.div>
                 ))}
-
-                {isPremium && showAdvanced && (
-                  <div className="rounded-xl border border-border bg-secondary/30 p-4">
-                    <h4 className="text-sm font-semibold text-foreground">
-                      Advanced explanation (Premium)
-                    </h4>
-                    <ul className="mt-2 list-disc pl-5 space-y-2 text-sm text-muted-foreground">
-                      {advancedBullets.map((b, i) => (
-                        <li key={i}>{b}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </div>
             </div>
 

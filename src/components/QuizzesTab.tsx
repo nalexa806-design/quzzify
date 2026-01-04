@@ -236,17 +236,16 @@ export const QuizzesTab = () => {
     });
 
     setShowAnswerFeedback(true);
+  };
 
-    // Show answer for 2.5 seconds, then move to next question or show results
-    setTimeout(() => {
-      setShowAnswerFeedback(false);
-      if (currentQuestionIndex < activeQuiz.questions.length - 1) {
-        setCurrentQuestionIndex((i) => i + 1);
-      } else {
-        // Quiz completed - show results modal
-        setShowResultsModal(true);
-      }
-    }, 2500);
+  const handleNext = () => {
+    if (!activeQuiz) return;
+    setShowAnswerFeedback(false);
+    if (currentQuestionIndex < activeQuiz.questions.length - 1) {
+      setCurrentQuestionIndex((i) => i + 1);
+    } else {
+      setShowResultsModal(true);
+    }
   };
 
   const remainingQuizzes = 3 - quizzesCreated;
@@ -368,6 +367,9 @@ export const QuizzesTab = () => {
               question={activeQuiz.questions[currentQuestionIndex]}
               onAnswer={handleAnswer}
               isPremium={isPremium}
+              showAnswerFeedback={showAnswerFeedback}
+              onNext={handleNext}
+              isLastQuestion={currentQuestionIndex === activeQuiz.questions.length - 1}
             />
 
             {/* Results Modal */}
@@ -533,10 +535,16 @@ const QuestionCard = ({
   question,
   onAnswer,
   isPremium,
+  showAnswerFeedback,
+  onNext,
+  isLastQuestion,
 }: {
   question: QuizQuestion;
   onAnswer: (index: number) => void;
   isPremium: boolean;
+  showAnswerFeedback: boolean;
+  onNext: () => void;
+  isLastQuestion: boolean;
 }) => {
   const answered = question.userAnswer !== undefined;
   const isCorrect = question.userAnswer === question.correctAnswer;
@@ -598,6 +606,18 @@ const QuestionCard = ({
               <p className="text-muted-foreground">{question.explanation}</p>
             </div>
           </div>
+        </motion.div>
+      )}
+
+      {/* Next button */}
+      {showAnswerFeedback && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Button onClick={onNext} className="w-full">
+            {isLastQuestion ? "See Results" : "Next Question"}
+          </Button>
         </motion.div>
       )}
     </div>
