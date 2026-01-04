@@ -43,31 +43,40 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bonus_quizzes: number
           created_at: string
           decks_created: number
           email: string | null
           id: string
           is_premium: boolean
+          level: number
           quizzes_created: number
           updated_at: string
+          xp: number
         }
         Insert: {
+          bonus_quizzes?: number
           created_at?: string
           decks_created?: number
           email?: string | null
           id: string
           is_premium?: boolean
+          level?: number
           quizzes_created?: number
           updated_at?: string
+          xp?: number
         }
         Update: {
+          bonus_quizzes?: number
           created_at?: string
           decks_created?: number
           email?: string | null
           id?: string
           is_premium?: boolean
+          level?: number
           quizzes_created?: number
           updated_at?: string
+          xp?: number
         }
         Relationships: []
       }

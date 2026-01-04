@@ -9,6 +9,7 @@ import { BottomTabs } from "@/components/BottomTabs";
 import { HomeworkPanel, AnswerPanel } from "@/components/HomeworkTab";
 import { QuizzesTab } from "@/components/QuizzesTab";
 import { FlashcardsTab } from "@/components/FlashcardsTab";
+import { XpProgressBar } from "@/components/XpProgressBar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -89,8 +90,13 @@ const Index = () => {
             })}
           </nav>
 
-          {/* Right side: Auth + Premium */}
+          {/* Right side: XP + Auth + Premium */}
           <div className="flex items-center gap-2">
+            {/* XP Progress - visible when logged in */}
+            <div className="hidden md:block">
+              <XpProgressBar />
+            </div>
+            
             {user ? (
               <div className="hidden md:flex items-center gap-2">
                 <span className="text-sm text-muted-foreground truncate max-w-32">
