@@ -277,7 +277,7 @@ export const AnswerPanel = () => {
   const { currentAnswer, isProcessing } = useAppStore();
 
   return (
-    <div className="h-full overflow-y-auto p-4 pb-32 md:pb-4">
+    <div className="max-h-[calc(100vh-280px)] md:max-h-[calc(100vh-220px)] overflow-y-auto p-4 pb-32 md:pb-4">
       <AnimatePresence mode="wait">
         {isProcessing ? (
           <motion.div
