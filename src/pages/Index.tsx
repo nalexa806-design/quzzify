@@ -92,7 +92,8 @@ const Index = () => {
 
           {/* Right side: XP + Auth + Premium */}
           <div className="flex items-center gap-2">
-            {/* XP Progress - visible when logged in */}
+            {/* XP Progress - visible when logged in (both mobile and desktop) */}
+            {user && <XpProgressBar compact className="md:hidden" />}
             <div className="hidden md:block">
               <XpProgressBar />
             </div>
