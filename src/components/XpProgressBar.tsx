@@ -8,9 +8,10 @@ import { cn } from "@/lib/utils";
 
 interface XpProgressBarProps {
   compact?: boolean;
+  className?: string;
 }
 
-export const XpProgressBar = ({ compact = false }: XpProgressBarProps) => {
+export const XpProgressBar = ({ compact = false, className }: XpProgressBarProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { level, levelInfo, loading } = useXp();
@@ -23,7 +24,8 @@ export const XpProgressBar = ({ compact = false }: XpProgressBarProps) => {
       onClick={() => navigate("/roadmap")}
       className={cn(
         "flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer",
-        compact && "px-2 py-1"
+        compact && "px-2 py-1",
+        className
       )}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
