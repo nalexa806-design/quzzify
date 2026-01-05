@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.solve-homework]
 verify_jwt = false
+
+[functions.generate-quiz]
+verify_jwt = false
