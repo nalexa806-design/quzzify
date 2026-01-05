@@ -55,6 +55,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [session, setIsPremium]);
 
+  // Helper to load premium from profile (database) - this is the source of truth
+  const loadPremiumFromProfile = useCallback(async (userId: string) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('is_premium')
+        .eq('id', userId)
+        .single();
+      
+      if (!error && profile?.is_premium === true) {
+        setIsPremium(true);
+      } else {
+        setIsPremium(false);
+      }
+    } catch (err) {
+      console.error('Error loading premium from profile:', err);
+      setIsPremium(false);
+    }
+  }, [setIsPremium]);
+
   useEffect(() => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -63,30 +83,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(newSession?.user ?? null);
         setLoading(false);
 
-        // Reset premium status when user logs out
+        // Clear local premium state when user logs out (account keeps premium in DB)
         if (event === 'SIGNED_OUT' || !newSession) {
           setIsPremium(false);
         }
 
-        // Check premium status after auth change (only if signed in)
-        if (newSession && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-          setTimeout(async () => {
-            try {
-              const { data, error } = await supabase.functions.invoke('check-payment', {
-                headers: {
-                  Authorization: `Bearer ${newSession.access_token}`,
-                },
-              });
-              
-              if (!error && data?.isPremium === true) {
-                setIsPremium(true);
-              } else {
-                setIsPremium(false);
-              }
-            } catch (err) {
-              console.error('Error checking premium status:', err);
-              setIsPremium(false);
-            }
+        // Load premium from profile after auth change (only if signed in)
+        if (newSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+          setTimeout(() => {
+            loadPremiumFromProfile(newSession.user.id);
           }, 0);
         }
       }
@@ -98,33 +103,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(existingSession?.user ?? null);
       setLoading(false);
       
-      if (existingSession) {
-        setTimeout(async () => {
-          try {
-            const { data, error } = await supabase.functions.invoke('check-payment', {
-              headers: {
-                Authorization: `Bearer ${existingSession.access_token}`,
-              },
-            });
-            
-            if (!error && data?.isPremium === true) {
-              setIsPremium(true);
-            } else {
-              setIsPremium(false);
-            }
-          } catch (err) {
-            console.error('Error checking premium status:', err);
-            setIsPremium(false);
-          }
+      if (existingSession?.user) {
+        setTimeout(() => {
+          loadPremiumFromProfile(existingSession.user.id);
         }, 0);
       } else {
-        // No session, ensure premium is false
+        // No session = no premium (must be logged in)
         setIsPremium(false);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [setIsPremium]);
+  }, [setIsPremium, loadPremiumFromProfile]);
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`;
@@ -151,7 +141,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setIsPremium(false);
+    // Local state clears, but account keeps premium in database
   };
 
   return (
