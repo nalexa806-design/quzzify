@@ -6,7 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useAppStore, HomeworkAnswer } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { evaluate } from "mathjs";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
 export const HomeworkPanel = () => {
   const {
     currentQuestion,
@@ -28,6 +30,7 @@ export const HomeworkPanel = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [questionSpecifier, setQuestionSpecifier] = useState("");
 
   const handleImageUpload = (file: File) => {
     if (!canUploadImage()) {
@@ -59,58 +62,50 @@ export const HomeworkPanel = () => {
 
     setIsProcessing(true);
 
-    // Simulate AI processing
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const { data, error } = await supabase.functions.invoke("solve-homework", {
+        body: {
+          question: questionText,
+          imageUrl: currentImageUrl,
+          targetAudience,
+          questionSpecifier: questionSpecifier.trim() || null,
+        },
+      });
 
-    // Generate mock response based on problem complexity
-    const isSimple = /^[\d\s+\-*/=.]+$/.test(questionText) && questionText.length < 20;
-    const answer = generateMockAnswer(questionText, isSimple, targetAudience);
+      if (error) {
+        console.error("Edge function error:", error);
+        toast.error("Failed to solve problem. Please try again.");
+        setIsProcessing(false);
+        return;
+      }
 
-    setCurrentAnswer(answer);
-    addHomeworkToHistory(answer);
+      if (data.error) {
+        toast.error(data.error);
+        setIsProcessing(false);
+        return;
+      }
+
+      const answer: HomeworkAnswer = {
+        id: Date.now().toString(),
+        question: questionText || "Image problem",
+        answer: "Here's the solution:",
+        steps: data.steps || [],
+        finalAnswer: data.finalAnswer || "See steps above",
+        timestamp: Date.now(),
+        imageUrl: currentImageUrl || undefined,
+      };
+
+      setCurrentAnswer(answer);
+      addHomeworkToHistory(answer);
+      setQuestionSpecifier("");
+    } catch (err) {
+      console.error("Error solving homework:", err);
+      toast.error("Something went wrong. Please try again.");
+    }
+
     setIsProcessing(false);
   };
 
-  const generateMockAnswer = (question: string, isSimple: boolean, audience: string): HomeworkAnswer => {
-    const id = Date.now().toString();
-    
-    if (isSimple) {
-      // Simple arithmetic - use safe math parser instead of eval
-      try {
-        const sanitized = question.replace(/[^0-9+\-*/().]/g, "");
-        // Additional validation: max length and balanced parentheses
-        if (sanitized.length > 100) throw new Error("Expression too long");
-        const openParens = (sanitized.match(/\(/g) || []).length;
-        const closeParens = (sanitized.match(/\)/g) || []).length;
-        if (openParens !== closeParens) throw new Error("Unbalanced parentheses");
-        
-        const result = evaluate(sanitized);
-        return {
-          id,
-          question,
-          answer: `${result}`,
-          steps: [`${question} = ${result}`],
-          finalAnswer: `${result}`,
-          timestamp: Date.now(),
-        };
-      } catch {
-        // Fall through to complex answer
-      }
-    }
-
-    // For image uploads or text questions - show that it needs actual AI processing
-    return {
-      id,
-      question: question || "Image uploaded for analysis",
-      answer: "Processing your question...",
-      steps: ["AI is analyzing your problem. Please wait for the solution."],
-      finalAnswer: "Solution pending - requires AI processing",
-      timestamp: Date.now(),
-      imageUrl: currentImageUrl || undefined,
-    };
-  };
-
-  const [questionSpecifier, setQuestionSpecifier] = useState("");
 
   return (
     <div className="flex flex-col h-full min-h-0">
