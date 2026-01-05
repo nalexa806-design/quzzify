@@ -318,21 +318,8 @@ export const AnswerPanel = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="flex flex-col h-full min-h-0 gap-6"
+            className="flex flex-col h-full min-h-0 gap-4"
           >
-            {/* Question */}
-            <div className="bg-secondary/50 rounded-xl p-4">
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">Question</h3>
-              <p className="text-foreground">{currentAnswer.question}</p>
-              {currentAnswer.imageUrl && (
-                <img
-                  src={currentAnswer.imageUrl}
-                  alt="Problem"
-                  className="mt-3 rounded-lg max-h-[150px] object-contain"
-                />
-              )}
-            </div>
-
             {/* Steps */}
             <div className="min-h-0 flex-1 flex flex-col">
               <div className="flex items-center justify-between gap-3 mb-4">
