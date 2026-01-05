@@ -10,6 +10,8 @@ import { Slider } from "@/components/ui/slider";
 import { useXp } from "@/hooks/useXp";
 import { useAuth } from "@/hooks/useAuth";
 import { formatTime, calculateQuizXp } from "@/lib/xp";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type QuizInputMode = "topic" | "notes" | "upload";
 
@@ -101,20 +103,76 @@ export const QuizzesTab = () => {
     }
 
     setIsGenerating(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    
+    let questions: QuizQuestion[] = [];
+    
+    try {
+      if (quizInputMode === "topic") {
+        // Use mock questions for predefined topics, AI for custom topics
+        const mockQuestions = generateMockQuestions(topic);
+        if (mockQuestions.length > 0 && mockQuestions[0].question.includes("key principle")) {
+          // Custom topic - use AI
+          const { data, error } = await supabase.functions.invoke('generate-quiz', {
+            body: { topic, questionCount }
+          });
+          
+          if (error) throw error;
+          if (data?.questions) {
+            questions = data.questions;
+          } else {
+            throw new Error("No questions returned");
+          }
+        } else {
+          // Predefined topic - use mock
+          questions = mockQuestions.slice(0, questionCount);
+        }
+      } else if (quizInputMode === "notes") {
+        // Use AI for notes
+        const { data, error } = await supabase.functions.invoke('generate-quiz', {
+          body: { notes, questionCount }
+        });
+        
+        if (error) throw error;
+        if (data?.questions) {
+          questions = data.questions;
+        } else {
+          throw new Error("No questions returned");
+        }
+      } else if (quizInputMode === "upload" && uploadedImageUrl) {
+        // Use AI for image
+        const { data, error } = await supabase.functions.invoke('generate-quiz', {
+          body: { imageBase64: uploadedImageUrl, questionCount }
+        });
+        
+        if (error) throw error;
+        if (data?.questions) {
+          questions = data.questions;
+        } else {
+          throw new Error("No questions returned");
+        }
+      }
+    } catch (error) {
+      console.error("Quiz generation error:", error);
+      toast.error("Failed to generate quiz. Please try again.");
+      setIsGenerating(false);
+      return;
+    }
+
+    if (questions.length === 0) {
+      toast.error("Could not generate questions. Please try again.");
+      setIsGenerating(false);
+      return;
+    }
 
     const quizTitle = quizInputMode === "topic" ? topic : 
                       quizInputMode === "notes" ? "Quiz from Notes" : 
                       "Quiz from Image";
     
-    const allQuestions = generateMockQuestions(quizInputMode === "topic" ? topic : "Custom");
-    const selectedQuestions = allQuestions.slice(0, questionCount);
-    
     const quiz: Quiz = {
       id: Date.now().toString(),
       title: quizTitle,
       topic: quizInputMode === "topic" ? topic : quizInputMode === "notes" ? "From notes" : "From image",
-      questions: selectedQuestions,
+      questions,
       completed: false,
       timestamp: Date.now(),
     };
