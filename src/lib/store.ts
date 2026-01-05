@@ -61,6 +61,7 @@ interface AppState {
   
   // Limits
   imageUploadsUsed: number;
+  homeworkSolvesUsed: number;
   quizzesCreated: number;
   
   // Homework
@@ -93,6 +94,7 @@ interface AppState {
   setIsProcessing: (isProcessing: boolean) => void;
   addHomeworkToHistory: (answer: HomeworkAnswer) => void;
   incrementImageUploads: () => boolean;
+  incrementHomeworkSolves: () => boolean;
   addQuiz: (quiz: Quiz) => boolean;
   setActiveQuiz: (quiz: Quiz | null) => void;
   updateQuiz: (quizId: string, updates: Partial<Quiz>) => void;
@@ -102,11 +104,13 @@ interface AppState {
   setHasUsedFreeTrial: (used: boolean) => void;
   setShowPremiumModal: (show: boolean) => void;
   canUploadImage: () => boolean;
+  canSolveHomework: () => boolean;
   canCreateQuiz: () => boolean;
   canUseFlashcards: () => boolean;
 }
 
 const FREE_IMAGE_LIMIT = 5;
+const FREE_HOMEWORK_LIMIT = 10;
 const FREE_QUIZ_LIMIT = 3;
 
 export const useAppStore = create<AppState>()(
@@ -118,6 +122,7 @@ export const useAppStore = create<AppState>()(
       activeTab: 'homework',
       inputMode: 'text',
       imageUploadsUsed: 0,
+      homeworkSolvesUsed: 0,
       quizzesCreated: 0,
       homeworkHistory: [],
       currentQuestion: '',
@@ -149,6 +154,16 @@ export const useAppStore = create<AppState>()(
         const state = get();
         if (state.isPremium || state.imageUploadsUsed < FREE_IMAGE_LIMIT) {
           set({ imageUploadsUsed: state.imageUploadsUsed + 1 });
+          return true;
+        }
+        set({ showPremiumModal: true });
+        return false;
+      },
+      
+      incrementHomeworkSolves: () => {
+        const state = get();
+        if (state.isPremium || state.homeworkSolvesUsed < FREE_HOMEWORK_LIMIT) {
+          set({ homeworkSolvesUsed: state.homeworkSolvesUsed + 1 });
           return true;
         }
         set({ showPremiumModal: true });
@@ -208,6 +223,11 @@ export const useAppStore = create<AppState>()(
         return state.isPremium || state.imageUploadsUsed < FREE_IMAGE_LIMIT;
       },
       
+      canSolveHomework: () => {
+        const state = get();
+        return state.isPremium || state.homeworkSolvesUsed < FREE_HOMEWORK_LIMIT;
+      },
+      
       canCreateQuiz: () => {
         const state = get();
         return state.isPremium || state.quizzesCreated < FREE_QUIZ_LIMIT;
@@ -221,9 +241,9 @@ export const useAppStore = create<AppState>()(
     {
       name: 'quizzify-storage',
       partialize: (state) => ({
-        isPremium: state.isPremium,
         targetAudience: state.targetAudience,
         imageUploadsUsed: state.imageUploadsUsed,
+        homeworkSolvesUsed: state.homeworkSolvesUsed,
         quizzesCreated: state.quizzesCreated,
         homeworkHistory: state.homeworkHistory,
         quizHistory: state.quizHistory,

@@ -103,12 +103,12 @@ export const PremiumModal = () => {
 
                 <ul className="space-y-3">
                   {[
+                    "Unlimited homework solves",
                     "Unlimited quizzes (up to 20 questions)",
                     "Unlimited flashcard decks (up to 20 cards)",
                     "In-depth homework explanations",
                     "Unlimited image uploads",
                     "Full step-by-step solutions",
-                    "Export results (PDF/CSV)",
                   ].map((feature, i) => (
                     <li key={i} className="flex items-center gap-3">
                       <div className="w-5 h-5 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
