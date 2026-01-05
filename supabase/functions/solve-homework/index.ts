@@ -40,6 +40,8 @@ Guidelines:
 - The finalAnswer should be concise and directly answer the question
 - For math problems, show your work in each step
 - ${questionContext}
+- NEVER use LaTeX notation or dollar signs ($) for math. Write variables and equations in plain text (e.g., write "x = 2k" not "$x = 2k$")
+- Focus ONLY on solving the specific problem shown. Do not give study tips or memorization advice.
 
 IMPORTANT: Return ONLY the JSON object, no markdown code blocks or other formatting.`;
 
