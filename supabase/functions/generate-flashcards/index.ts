@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,34 +17,6 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
-
-    // Authentication check
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-    );
-
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      logStep("ERROR", { message: "No authorization header" });
-      return new Response(
-        JSON.stringify({ error: "Authentication required" }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: authError } = await supabaseClient.auth.getUser(token);
-    
-    if (authError || !userData.user) {
-      logStep("ERROR", { message: "Invalid authentication" });
-      return new Response(
-        JSON.stringify({ error: "Invalid authentication" }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    logStep("User authenticated", { userId: userData.user.id });
 
     const { notes, imageBase64 } = await req.json();
 
