@@ -24,13 +24,19 @@ export const HomeworkPanel = () => {
     setInputMode,
     canUploadImage,
     incrementImageUploads,
+    canSolveHomework,
+    incrementHomeworkSolves,
     setShowPremiumModal,
     targetAudience,
+    isPremium,
+    homeworkSolvesUsed,
   } = useAppStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const [questionSpecifier, setQuestionSpecifier] = useState("");
+  
+  const remainingHomework = 10 - homeworkSolvesUsed;
 
   const handleImageUpload = (file: File) => {
     if (!canUploadImage()) {
@@ -60,9 +66,18 @@ export const HomeworkPanel = () => {
     const questionText = currentQuestion.trim();
     if (questionText.length < 3 && !currentImageUrl) return;
 
+    // Check homework limit
+    if (!canSolveHomework()) {
+      setShowPremiumModal(true);
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
+      // Increment homework solves count
+      incrementHomeworkSolves();
+      
       const { data, error } = await supabase.functions.invoke("solve-homework", {
         body: {
           question: questionText,
@@ -111,6 +126,14 @@ export const HomeworkPanel = () => {
     <div className="flex flex-col h-full min-h-0">
       {/* Input Section */}
       <div className="flex-1 min-h-0 p-4 overflow-y-auto">
+        {/* Free limit indicator */}
+        {!isPremium && (
+          <div className="mb-4 p-3 rounded-lg bg-warning/10 border border-warning/20 text-sm">
+            <span className="text-warning font-medium">{Math.max(0, remainingHomework)}</span>
+            <span className="text-muted-foreground"> free homework solves remaining</span>
+          </div>
+        )}
+
         {/* Mobile Input Toggle */}
         <div className="flex gap-2 mb-4 md:hidden">
           <Button
