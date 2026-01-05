@@ -3,10 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, Image, Type, Upload, X, Loader2, Sparkles, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { useAppStore, HomeworkAnswer } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { evaluate } from "mathjs";
-
 export const HomeworkPanel = () => {
   const {
     currentQuestion,
@@ -98,35 +98,19 @@ export const HomeworkPanel = () => {
       }
     }
 
-    // Complex problem mock
-    const isMiddleSchool = audience === "middle-school";
-    const steps = isMiddleSchool
-      ? [
-          "1. First, let's understand what the problem is asking.",
-          "2. We identify the key information given.",
-          "3. Now we apply the appropriate formula or method.",
-          "4. Calculate step by step.",
-          "5. Check our answer makes sense.",
-        ]
-      : [
-          "1. Analyze the problem structure and identify variables.",
-          "2. Set up the relevant equations based on given conditions.",
-          "3. Apply algebraic manipulation or geometric principles.",
-          "4. Solve systematically, showing each transformation.",
-          "5. Verify the solution by substitution.",
-          "6. Consider edge cases and validate the result.",
-        ];
-
+    // For image uploads or text questions - show that it needs actual AI processing
     return {
       id,
-      question,
-      answer: "Here's how to solve this problem...",
-      steps,
-      finalAnswer: "42 (or the calculated result)",
+      question: question || "Image uploaded for analysis",
+      answer: "Processing your question...",
+      steps: ["AI is analyzing your problem. Please wait for the solution."],
+      finalAnswer: "Solution pending - requires AI processing",
       timestamp: Date.now(),
       imageUrl: currentImageUrl || undefined,
     };
   };
+
+  const [questionSpecifier, setQuestionSpecifier] = useState("");
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -189,20 +173,37 @@ export const HomeworkPanel = () => {
               />
 
               {currentImageUrl ? (
-                <div className="relative rounded-xl overflow-hidden border-2 border-primary bg-card">
-                  <img
-                    src={currentImageUrl}
-                    alt="Uploaded problem"
-                    className="w-full h-auto max-h-[300px] object-contain"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="icon-sm"
-                    className="absolute top-2 right-2"
-                    onClick={() => setCurrentImageUrl(null)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
+                <div className="space-y-3">
+                  <div className="relative rounded-xl overflow-hidden border-2 border-primary bg-card">
+                    <img
+                      src={currentImageUrl}
+                      alt="Uploaded problem"
+                      className="w-full h-auto max-h-[300px] object-contain"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon-sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => setCurrentImageUrl(null)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  {/* Question specifier for image uploads */}
+                  <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+                    <label className="text-sm font-medium text-foreground mb-2 block">
+                      Which question(s) to solve? (optional)
+                    </label>
+                    <Input
+                      placeholder="e.g., Question 3, Problem 1a-1c, All questions"
+                      value={questionSpecifier}
+                      onChange={(e) => setQuestionSpecifier(e.target.value)}
+                      className="bg-card"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Leave empty to solve all visible questions
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div

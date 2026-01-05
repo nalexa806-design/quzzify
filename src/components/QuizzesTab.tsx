@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, History, Image, CheckCircle, XCircle, HelpCircle, Lock, Loader2, Trophy, Clock, Zap } from "lucide-react";
+import { Plus, History, Image, CheckCircle, XCircle, HelpCircle, Lock, Loader2, Trophy, Clock, Zap, Type, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useAppStore, Quiz, QuizQuestion } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 import { useXp } from "@/hooks/useXp";
 import { useAuth } from "@/hooks/useAuth";
 import { formatTime, calculateQuizXp } from "@/lib/xp";
+
+type QuizInputMode = "topic" | "notes" | "upload";
 
 const SAMPLE_TOPICS = [
   "Basic Algebra",
@@ -36,6 +39,8 @@ export const QuizzesTab = () => {
 
   const [showHistory, setShowHistory] = useState(false);
   const [topic, setTopic] = useState("");
+  const [notes, setNotes] = useState("");
+  const [quizInputMode, setQuizInputMode] = useState<QuizInputMode>("topic");
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [questionCount, setQuestionCount] = useState(5);
@@ -44,6 +49,8 @@ export const QuizzesTab = () => {
   const [quizTimer, setQuizTimer] = useState(0);
   const [xpEarned, setXpEarned] = useState<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
 
   const maxQuestions = isPremium ? 20 : 7;
   const minQuestions = 3;
@@ -70,8 +77,24 @@ export const QuizzesTab = () => {
     setCurrentQuestionIndex(0);
   };
 
+  const handleImageUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setUploadedImageUrl(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const getQuizSource = () => {
+    if (quizInputMode === "topic") return topic.trim();
+    if (quizInputMode === "notes") return notes.trim();
+    if (quizInputMode === "upload") return uploadedImageUrl ? "Image uploaded" : "";
+    return "";
+  };
+
   const generateQuiz = async () => {
-    if (!topic.trim()) return;
+    const source = getQuizSource();
+    if (!source) return;
     if (!canCreateQuiz()) {
       setShowPremiumModal(true);
       return;
@@ -80,13 +103,17 @@ export const QuizzesTab = () => {
     setIsGenerating(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    const allQuestions = generateMockQuestions(topic);
+    const quizTitle = quizInputMode === "topic" ? topic : 
+                      quizInputMode === "notes" ? "Quiz from Notes" : 
+                      "Quiz from Image";
+    
+    const allQuestions = generateMockQuestions(quizInputMode === "topic" ? topic : "Custom");
     const selectedQuestions = allQuestions.slice(0, questionCount);
     
     const quiz: Quiz = {
       id: Date.now().toString(),
-      title: topic,
-      topic,
+      title: quizTitle,
+      topic: quizInputMode === "topic" ? topic : quizInputMode === "notes" ? "From notes" : "From image",
       questions: selectedQuestions,
       completed: false,
       timestamp: Date.now(),
@@ -97,6 +124,8 @@ export const QuizzesTab = () => {
     }
     setIsGenerating(false);
     setTopic("");
+    setNotes("");
+    setUploadedImageUrl(null);
   };
 
   const generateMockQuestions = (topic: string): QuizQuestion[] => {
@@ -530,21 +559,137 @@ export const QuizzesTab = () => {
           >
             {/* Create Quiz */}
             <div className="space-y-4">
+              {/* Input Mode Toggle */}
               <div className="flex gap-2">
-                <Input
-                  placeholder="Enter a topic (e.g., Quadratic Equations)"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && generateQuiz()}
-                />
-                <Button onClick={generateQuiz} disabled={isGenerating || !topic.trim()}>
-                  {isGenerating ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Plus className="w-4 h-4" />
-                  )}
+                <Button
+                  variant={quizInputMode === "topic" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setQuizInputMode("topic")}
+                  className="flex-1"
+                >
+                  <Type className="w-4 h-4 mr-2" />
+                  Topic
+                </Button>
+                <Button
+                  variant={quizInputMode === "notes" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setQuizInputMode("notes")}
+                  className="flex-1"
+                >
+                  <Type className="w-4 h-4 mr-2" />
+                  Notes
+                </Button>
+                <Button
+                  variant={quizInputMode === "upload" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setQuizInputMode("upload")}
+                  className="flex-1"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload
                 </Button>
               </div>
+
+              {/* Topic Input */}
+              {quizInputMode === "topic" && (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter a topic (e.g., Quadratic Equations)"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && generateQuiz()}
+                  />
+                  <Button onClick={generateQuiz} disabled={isGenerating || !topic.trim()}>
+                    {isGenerating ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Plus className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* Notes Input */}
+              {quizInputMode === "notes" && (
+                <div className="space-y-2">
+                  <Textarea
+                    placeholder="Paste your study notes here and we'll generate quiz questions from them..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="min-h-[150px] resize-none bg-card border-2 border-border focus:border-primary transition-colors"
+                  />
+                  <Button onClick={generateQuiz} disabled={isGenerating || !notes.trim()} className="w-full">
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Generate Quiz from Notes
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* Upload Input */}
+              {quizInputMode === "upload" && (
+                <div className="space-y-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
+                    className="hidden"
+                  />
+                  {uploadedImageUrl ? (
+                    <div className="relative rounded-xl overflow-hidden border-2 border-primary bg-card">
+                      <img
+                        src={uploadedImageUrl}
+                        alt="Uploaded notes"
+                        className="w-full h-auto max-h-[200px] object-contain"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon-sm"
+                        className="absolute top-2 right-2"
+                        onClick={() => setUploadedImageUrl(null)}
+                      >
+                        <span className="sr-only">Remove</span>
+                        ×
+                      </Button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all border-border hover:border-primary/50 hover:bg-card"
+                    >
+                      <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                      <p className="text-foreground font-medium mb-1">
+                        Upload notes or textbook image
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        AI will generate quiz questions from the content
+                      </p>
+                    </div>
+                  )}
+                  <Button onClick={generateQuiz} disabled={isGenerating || !uploadedImageUrl} className="w-full">
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Generate Quiz from Image
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
 
               {/* Question count selector */}
               <div className="p-4 rounded-xl bg-card border border-border">
@@ -566,34 +711,30 @@ export const QuizzesTab = () => {
                 </div>
               </div>
 
-              {/* Image upload note */}
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary/50 text-sm text-muted-foreground">
-                <Image className="w-4 h-4" />
-                <span>Image uploads supported for quiz questions</span>
-              </div>
-
               {/* Video/Audio note */}
               <div className="flex items-center gap-2 p-3 rounded-lg bg-muted text-sm text-muted-foreground">
                 <Lock className="w-4 h-4" />
                 <span>Video & Audio inputs — Coming Soon</span>
               </div>
 
-              {/* Quick topics */}
-              <div>
-                <p className="text-sm text-muted-foreground mb-3">Quick start:</p>
-                <div className="flex flex-wrap gap-2">
-                  {SAMPLE_TOPICS.map((t) => (
-                    <Button
-                      key={t}
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setTopic(t)}
-                    >
-                      {t}
-                    </Button>
-                  ))}
+              {/* Quick topics - only show in topic mode */}
+              {quizInputMode === "topic" && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-3">Quick start:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SAMPLE_TOPICS.map((t) => (
+                      <Button
+                        key={t}
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setTopic(t)}
+                      >
+                        {t}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </motion.div>
         )}

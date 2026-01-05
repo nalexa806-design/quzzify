@@ -37,11 +37,6 @@ export const XpProgressBar = ({ compact = false, className }: XpProgressBarProps
       whileTap={{ scale: 0.98 }}
       title={isLoggedIn ? "View Level Roadmap" : "Login to track progress"}
     >
-      {/* Lock icon for non-logged in users */}
-      {!isLoggedIn && (
-        <Lock className={cn("text-muted-foreground", compact ? "w-3 h-3" : "w-4 h-4")} />
-      )}
-
       {/* Level badge */}
       <div className={cn(
         "flex items-center justify-center rounded-full font-bold",
@@ -71,6 +66,16 @@ export const XpProgressBar = ({ compact = false, className }: XpProgressBarProps
         isLoggedIn 
           ? <Trophy className="w-4 h-4 text-primary" />
           : <Trophy className="w-4 h-4 text-muted-foreground" />
+      )}
+
+      {/* Lock icon separate from progress - for non-logged in users */}
+      {!isLoggedIn && (
+        <div className={cn(
+          "flex items-center justify-center rounded-full bg-muted-foreground/20 ml-1",
+          compact ? "w-5 h-5" : "w-6 h-6"
+        )}>
+          <Lock className={cn("text-muted-foreground", compact ? "w-3 h-3" : "w-3.5 h-3.5")} />
+        </div>
       )}
     </motion.button>
   );
